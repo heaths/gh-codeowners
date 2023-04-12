@@ -94,6 +94,7 @@ func lint(opts *lintOptions) (err error) {
 	linterOpts := codeowners.LintOptions{
 		Console: opts.Console,
 		Fix:     opts.fix,
+		Color:   opts.Color,
 	}
 
 	root, err := git.RootFS()
