@@ -63,19 +63,19 @@ func lint(opts *lintOptions) (err error) {
 		Repository struct {
 			Codeowners struct {
 				Errors codeowners.Errors
-			} `graphql:"codeowners(refName: $branch)"`
+			} `graphql:"codeowners(refName: $ref)"`
 		} `graphql:"repository(owner: $owner, name: $repo)"`
 	}
 
-	branch, err := git.BranchRef()
+	refName, err := git.RefName()
 	if err != nil {
 		return
 	}
 
 	variables := map[string]interface{}{
-		"owner":  graphql.String(opts.Repo.Owner()),
-		"repo":   graphql.String(opts.Repo.Name()),
-		"branch": graphql.String(branch),
+		"owner": graphql.String(opts.Repo.Owner()),
+		"repo":  graphql.String(opts.Repo.Name()),
+		"ref":   graphql.String(refName),
 	}
 	err = client.Query("CodeownersErrors", &query, variables)
 	if err != nil {
