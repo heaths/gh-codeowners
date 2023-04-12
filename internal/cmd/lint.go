@@ -2,23 +2,16 @@ package cmd
 
 import (
 	"fmt"
-	"sort"
-	"strings"
-	"unicode"
 
 	"github.com/cli/go-gh"
 	"github.com/cli/go-gh/pkg/api"
-	"github.com/cli/go-gh/pkg/repository"
+	"github.com/heaths/gh-codeowners/internal/codeowners"
+	"github.com/heaths/gh-codeowners/internal/git"
 	"github.com/shurcooL/graphql"
 	"github.com/spf13/cobra"
 )
 
-const (
-	unknown = "unknown"
-)
-
 func LintCommand(globalOpts *GlobalOptions) *cobra.Command {
-	var repo string
 	opts := &lintOptions{}
 
 	cmd := &cobra.Command{
@@ -27,14 +20,13 @@ func LintCommand(globalOpts *GlobalOptions) *cobra.Command {
 		Long:  "Checks your CODEOWNERS files for errors as determined by GitHub.",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			opts.GlobalOptions = globalOpts
-			if repo != "" {
-				opts.Repo, err = repository.Parse(repo)
-				if err != nil {
-					return
-				}
-			}
 
 			err = opts.EnsureRepository()
+			if err != nil {
+				return
+			}
+
+			err = opts.IsAuthenticated()
 			if err != nil {
 				return
 			}
@@ -43,8 +35,9 @@ func LintCommand(globalOpts *GlobalOptions) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&repo, "repo", "R", "", "Select another repository to use using the [HOST/]OWNER/REPO format")
-	StringEnumVarP(cmd, &opts.filter, "filter", "f", "", []string{unknown}, "Show owners only for the given filter")
+	cmd.Flags().BoolVar(&opts.fix, "fix", false, "Fix errors in the CODEOWNERS file.")
+	cmd.Flags().BoolVar(&opts.unknownOwners, "unknown-owners", false, "Only list unknown owners.")
+	cmd.MarkFlagsMutuallyExclusive("fix", "unknown-owners")
 
 	return cmd
 }
@@ -52,7 +45,8 @@ func LintCommand(globalOpts *GlobalOptions) *cobra.Command {
 type lintOptions struct {
 	*GlobalOptions
 
-	filter string
+	fix           bool
+	unknownOwners bool
 }
 
 func lint(opts *lintOptions) (err error) {
@@ -68,50 +62,44 @@ func lint(opts *lintOptions) (err error) {
 	var query struct {
 		Repository struct {
 			Codeowners struct {
-				Errors []struct {
-					Kind   string
-					Line   int
-					Column int
-					Source string
-					// Path   string
-				}
-			}
+				Errors codeowners.Errors
+			} `graphql:"codeowners(refName: $branch)"`
 		} `graphql:"repository(owner: $owner, name: $repo)"`
 	}
 
+	branch, err := git.BranchRef()
+	if err != nil {
+		return
+	}
+
 	variables := map[string]interface{}{
-		"owner": graphql.String(opts.Repo.Owner()),
-		"repo":  graphql.String(opts.Repo.Name()),
+		"owner":  graphql.String(opts.Repo.Owner()),
+		"repo":   graphql.String(opts.Repo.Name()),
+		"branch": graphql.String(branch),
 	}
 	err = client.Query("CodeownersErrors", &query, variables)
 	if err != nil {
 		return
 	}
 
-	missing := make(map[string]bool)
-	for _, e := range query.Repository.Codeowners.Errors {
-		if e.Kind == "Unknown owner" && e.Column > 0 {
-			owner := e.Source[e.Column-1:]
-			if idx := strings.IndexFunc(owner, func(r rune) bool {
-				return unicode.IsSpace(r)
-			}); idx > 0 {
-				owner = owner[:idx]
-			}
-			missing[owner] = true
-		}
-	}
-
-	if opts.filter == unknown {
-		owners := make([]string, 0, len(missing))
-		for k := range missing {
-			owners = append(owners, k)
-		}
-		sort.Strings(owners)
-
-		for _, owner := range owners {
+	if opts.unknownOwners {
+		missing := query.Repository.Codeowners.Errors.UnknownOwners()
+		for _, owner := range missing {
 			fmt.Fprintln(opts.Console.Stdout(), owner)
 		}
+
+		return
 	}
 
-	return
+	linterOpts := codeowners.LintOptions{
+		Console: opts.Console,
+		Fix:     opts.fix,
+	}
+
+	root, err := git.RootFS()
+	if err != nil {
+		return
+	}
+
+	return codeowners.Lint(root, query.Repository.Codeowners.Errors, linterOpts)
 }

@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/heaths/codeowners/internal/cmd"
+	"github.com/heaths/gh-codeowners/internal/cmd"
 	"github.com/heaths/go-console"
 	"github.com/spf13/cobra"
 )
@@ -28,7 +28,7 @@ func main() {
 
 	rootCmd.SetOut(con.Stdout())
 
-	rootCmd.PersistentFlags().BoolVarP(&opts.Verbose, "verbose", "v", false, "Log verbose output")
+	rootCmd.PersistentFlags().BoolVarP(&opts.Verbose, "verbose", "v", false, "Log verbose output.")
 	rootCmd.AddCommand(cmd.LintCommand(opts))
 
 	if err := rootCmd.Execute(); err != nil {
