@@ -13,6 +13,7 @@ import (
 )
 
 type GlobalOptions struct {
+	Color   ColorOptions
 	Console console.Console
 	Log     *log.Logger
 	Repo    repository.Repository
@@ -21,6 +22,11 @@ type GlobalOptions struct {
 	// Test-only options.
 	host      string
 	authToken string
+}
+
+type ColorOptions struct {
+	Comment string
+	Error   string
 }
 
 func (opts *GlobalOptions) EnsureRepository() (err error) {

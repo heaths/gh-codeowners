@@ -139,10 +139,10 @@ func TestLint(t *testing.T) {
 			},
 			tty: true,
 			want: heredoc.Docf(`
-				# License
+				%[1]s[0;38;2;0;255;0m# License%[1]s[0m
 
-				* @default # Default owner(s)
-				docs/** @writers %[1]s[0;31m@unknown%[1]s[0m
+				* @default %[1]s[0;38;2;0;255;0m# Default owner(s)%[1]s[0m
+				docs/** @writers %[1]s[0;38;2;255;0;0m@unknown%[1]s[0m
 			`, "\033"),
 		},
 	}
@@ -157,6 +157,13 @@ func TestLint(t *testing.T) {
 
 			opts := LintOptions{
 				Console: con,
+				Color: struct {
+					Comment string
+					Error   string
+				}{
+					Comment: "#00FF00",
+					Error:   "#FF0000",
+				},
 			}
 
 			err := Lint(mockFS, tt.errors, opts)

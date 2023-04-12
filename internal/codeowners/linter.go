@@ -82,6 +82,11 @@ func (e Errors) indexUnknownOwners() map[int][]string {
 type LintOptions struct {
 	Console console.Console
 	Fix     bool
+
+	Color struct {
+		Comment string
+		Error   string
+	}
 }
 
 func Lint(fs _fs.FS, errors Errors, opts LintOptions) error {
@@ -96,7 +101,8 @@ func Lint(fs _fs.FS, errors Errors, opts LintOptions) error {
 	}
 
 	cs := opts.Console.ColorScheme()
-	rem := cs.Red
+	remove := cs.ColorFunc(opts.Color.Error)
+	comment := cs.ColorFunc(opts.Color.Comment)
 
 	linenum := 0
 	missing := errors.indexUnknownOwners()
@@ -106,9 +112,16 @@ func Lint(fs _fs.FS, errors Errors, opts LintOptions) error {
 		linenum++
 
 		line := scanner.Text()
-		if owners, ok := missing[linenum]; ok {
-			for _, owner := range owners {
-				line = strings.ReplaceAll(line, owner, rem(owner))
+
+		if opts.Console.IsStdoutTTY() {
+			if owners, ok := missing[linenum]; ok {
+				for _, owner := range owners {
+					line = strings.ReplaceAll(line, owner, remove(owner))
+				}
+			}
+
+			if idx := strings.IndexRune(line, '#'); idx >= 0 {
+				line = line[:idx] + comment(line[idx:])
 			}
 		}
 

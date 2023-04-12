@@ -6,7 +6,10 @@
       "type": "go",
       "request": "launch",
       "mode": "auto",
-      "program": "${workspaceFolder}"
+      "program": "${workspaceFolder}",
+      "args": [
+        "lint"
+      ]
     }
   ]
 }
