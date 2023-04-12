@@ -50,8 +50,8 @@ func main() {
 	rootCmd.PersistentFlags().StringVar(&opts.Color.Error, "color-error", defaultColorError, fmt.Sprintf("Hex RGB color code for errors e.g., %q.", defaultColorError))
 
 	// BUGBUG: https://github.com/spf13/viper/issues/1537
-	v.BindPFlag("color.comment", rootCmd.PersistentFlags().Lookup("color-comment"))
-	v.BindPFlag("color.error", rootCmd.PersistentFlags().Lookup("color-error"))
+	_ = v.BindPFlag("color.comment", rootCmd.PersistentFlags().Lookup("color-comment"))
+	_ = v.BindPFlag("color.error", rootCmd.PersistentFlags().Lookup("color-error"))
 
 	// Subcommands
 	rootCmd.AddCommand(cmd.LintCommand(opts))
