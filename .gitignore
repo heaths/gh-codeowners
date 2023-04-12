@@ -1,0 +1,2 @@
+/{{param "name" (param "github.repo") "What is your project name?" | lowercase}}
+/{{param "name"}}.exe
