@@ -41,10 +41,10 @@ func RootFS() (fs.FS, error) {
 	return os.DirFS(path), nil
 }
 
-func BranchRef() (string, error) {
-	stdout, _, err := Exec("rev-parse", "--symbolic-full-name", "HEAD")
+func RefName() (string, error) {
+	stdout, _, err := Exec("rev-parse", "HEAD")
 	if err != nil {
-		return "", fmt.Errorf("failed to get branch name: %w", err)
+		return "", fmt.Errorf("failed to get ref name: %w", err)
 	}
 
 	name := strings.TrimSpace(stdout.String())
