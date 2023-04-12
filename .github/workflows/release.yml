@@ -12,6 +12,9 @@ defaults:
   run:
     shell: bash
 
+env:
+  GOVERSION: "1.19"
+
 jobs:
   test:
     uses: ./.github/workflows/ci.yml
@@ -31,5 +34,7 @@ jobs:
       run: gh release create ${{ github.ref_name }} --generate-notes
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Publish docs
-      run: curl https://proxy.golang.org/github.com/${{ github.repository }}/@v/${{ github.ref_name }}.info
+    - name: Publish
+      uses: cli/gh-extension-precompile@v1
+      with:
+        go_version: ${{ env.GOVERSION }}
