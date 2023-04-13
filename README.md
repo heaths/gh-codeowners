@@ -16,8 +16,8 @@ gh codeowners lint
 You can also get a sorted list of unknown owners or just return the raw JSON:
 
 ```bash
-gh codeowners lint --unknown-owners
 gh codeowners lint --json
+gh codeowners lint --unknown-owners
 ```
 
 To render your CODEOWNERS file with errors reported by GitHub:
@@ -25,6 +25,8 @@ To render your CODEOWNERS file with errors reported by GitHub:
 ```bash
 gh codeowners view
 ```
+
+![screenshot](assets/gh-codeowners.png)
 
 ## Configuration
 
