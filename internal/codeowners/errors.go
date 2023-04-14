@@ -1,14 +1,13 @@
 package codeowners
 
 import (
-	"bufio"
-	"fmt"
-	_fs "io/fs"
 	"sort"
 	"strings"
 	"unicode"
 
-	"github.com/heaths/go-console"
+	"github.com/cli/go-gh/pkg/api"
+	"github.com/cli/go-gh/pkg/repository"
+	"github.com/shurcooL/graphql"
 )
 
 type ErrorKind string
@@ -18,11 +17,12 @@ const (
 )
 
 type Error struct {
-	Kind   ErrorKind
-	Line   int
-	Column int
-	Source string
-	Path   string
+	Kind    ErrorKind `json:"kind"`
+	Path    string    `json:"path"`
+	Line    int       `json:"line"`
+	Column  int       `json:"column"`
+	Source  string    `json:"source"`
+	Message string    `json:"message"`
 }
 
 func (e Error) UnknownOwner() string {
@@ -79,54 +79,25 @@ func (e Errors) indexUnknownOwners() map[int][]string {
 	return index
 }
 
-type LintOptions struct {
-	Console console.Console
-	Fix     bool
-
-	Color struct {
-		Comment string
-		Error   string
-	}
-}
-
-func Lint(fs _fs.FS, errors Errors, opts LintOptions) error {
-	path := errors.Path()
-	if path == "" {
-		return nil
+func QueryErrors(client api.GQLClient, repo repository.Repository, ref string) (Errors, error) {
+	var query struct {
+		Repository struct {
+			Codeowners struct {
+				Errors Errors
+			} `graphql:"codeowners(refName: $ref)"`
+		} `graphql:"repository(owner: $owner, name: $repo)"`
 	}
 
-	file, err := fs.Open(path)
+	variables := map[string]interface{}{
+		"owner": graphql.String(repo.Owner()),
+		"repo":  graphql.String(repo.Name()),
+		"ref":   graphql.String(ref),
+	}
+
+	err := client.Query("CodeownersErrors", &query, variables)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	cs := opts.Console.ColorScheme()
-	remove := cs.ColorFunc(opts.Color.Error)
-	comment := cs.ColorFunc(opts.Color.Comment)
-
-	linenum := 0
-	missing := errors.indexUnknownOwners()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		linenum++
-
-		line := scanner.Text()
-
-		if opts.Console.IsStdoutTTY() {
-			if owners, ok := missing[linenum]; ok {
-				for _, owner := range owners {
-					line = strings.ReplaceAll(line, owner, remove(owner))
-				}
-			}
-
-			if idx := strings.IndexRune(line, '#'); idx >= 0 {
-				line = line[:idx] + comment(line[idx:])
-			}
-		}
-
-		fmt.Fprintln(opts.Console.Stdout(), line)
-	}
-
-	return nil
+	return query.Repository.Codeowners.Errors, nil
 }

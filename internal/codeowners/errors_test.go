@@ -1,13 +1,15 @@
 package codeowners
 
 import (
-	"bytes"
+	"fmt"
+	"strings"
 	"testing"
-	"testing/fstest"
 
-	"github.com/MakeNowJust/heredoc"
-	"github.com/heaths/go-console"
+	"github.com/cli/go-gh"
+	"github.com/cli/go-gh/pkg/api"
+	"github.com/cli/go-gh/pkg/repository"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/h2non/gock.v1"
 )
 
 func TestError_UnknownOwner(t *testing.T) {
@@ -93,87 +95,100 @@ func TestErrors_UnknownOwners(t *testing.T) {
 	}
 }
 
-func TestLint(t *testing.T) {
-	var source = heredoc.Doc(`
-		# License
-
-		* @default # Default owner(s)
-		docs/** @writers @unknown
-	`)
-
-	const path = ".github/CODEOWNERS"
-	mockFS := fstest.MapFS{
-		path: {Data: []byte(source)},
-	}
-
+func TestQueryErrors(t *testing.T) {
 	tests := []struct {
 		name    string
-		errors  Errors
-		tty     bool
-		want    string
-		wantErr string
+		mocks   func()
+		want    Errors
+		wantErr error
 	}{
 		{
-			name: "unknown owner",
-			errors: Errors{
-				{
-					Kind:   ErrorKindUnknownOwner,
-					Line:   4,
-					Column: 18,
-					Source: "docs/** @writers @unknown",
-					Path:   path,
-				},
+			name: "query error",
+			mocks: func() {
+				gock.New("https://api.github.com").
+					Post("/graphql").
+					Reply(200).
+					JSON(`{
+						"errors": [
+							{
+								"message": "no CODEOWNERS found"
+							}
+						]
+					}`)
 			},
-			want: source,
+			wantErr: assert.AnError,
 		},
 		{
-			name: "unknown owner (tty)",
-			errors: Errors{
+			name: "validation errors",
+			mocks: func() {
+				gock.New("https://api.github.com").
+					Post("/graphql").
+					Reply(200).
+					JSON(`{
+						"data": {
+							"repository": {
+								"codeowners": {
+									"errors": [
+										{
+											"kind": "Unknown owner",
+											"line": 6,
+											"column": 9,
+											"source": "docs/** @writers"
+										}
+									]
+								}
+							}
+						}
+					}`)
+			},
+			want: []Error{
 				{
 					Kind:   ErrorKindUnknownOwner,
-					Line:   4,
-					Column: 18,
-					Source: "docs/** @writers @unknown",
-					Path:   path,
+					Line:   6,
+					Column: 9,
+					Source: "docs/** @writers",
 				},
 			},
-			tty: true,
-			want: heredoc.Docf(`
-				%[1]s[0;38;2;0;255;0m# License%[1]s[0m
-
-				* @default %[1]s[0;38;2;0;255;0m# Default owner(s)%[1]s[0m
-				docs/** @writers %[1]s[0;38;2;255;0;0m@unknown%[1]s[0m
-			`, "\033"),
 		},
 	}
+
+	repo, err := repository.Parse("heaths/gh-codeowners")
+	assert.NoError(t, err)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stdout := &bytes.Buffer{}
-			con := console.Fake(
-				console.WithStdout(stdout),
-				console.WithStdoutTTY(tt.tty),
-			)
+			t.Cleanup(gock.Off)
 
-			opts := LintOptions{
-				Console: con,
-				Color: struct {
-					Comment string
-					Error   string
-				}{
-					Comment: "#00FF00",
-					Error:   "#FF0000",
-				},
+			if tt.mocks != nil {
+				tt.mocks()
 			}
 
-			err := Lint(mockFS, tt.errors, opts)
-			if tt.wantErr != "" {
-				assert.EqualError(t, err, tt.wantErr)
+			client, err := gh.GQLClient(&api.ClientOptions{
+				Host:      "github.com",
+				AuthToken: "***",
+			})
+			assert.NoError(t, err)
+
+			errors, err := QueryErrors(client, repo, "main")
+			if tt.wantErr != nil {
+				assert.Error(t, err)
 				return
 			}
 
 			assert.NoError(t, err)
-			assert.Equal(t, tt.want, stdout.String())
+			assert.Equal(t, tt.want, errors)
+			assert.True(t, gock.IsDone(), "pending mocks: %v", Mocks(gock.Pending()))
 		})
 	}
+}
+
+type Mocks []gock.Mock
+
+func (m Mocks) String() string {
+	paths := make([]string, len(m))
+	for i, mock := range m {
+		paths[i] = mock.Request().URLStruct.String()
+	}
+
+	return fmt.Sprintf("%d unmatched mocks: %s", len(paths), strings.Join(paths, ", "))
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/cli/go-gh"
 	"github.com/cli/go-gh/pkg/auth"
 	"github.com/cli/go-gh/pkg/repository"
+	"github.com/cli/go-gh/pkg/term"
 	"github.com/heaths/go-console"
 	"github.com/spf13/cobra"
 )
@@ -57,6 +58,12 @@ func (opts *GlobalOptions) IsAuthenticated() error {
 	}
 
 	return nil
+}
+
+func (opts *GlobalOptions) IsColorEnabled() bool {
+	return !term.IsColorDisabled() &&
+		opts.Console != nil &&
+		opts.Console.IsStdoutTTY()
 }
 
 func StringEnumVarP(cmd *cobra.Command, p *string, name, shorthand, defaultValue string, values []string, usage string) {
