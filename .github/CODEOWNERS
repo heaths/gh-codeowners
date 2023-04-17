@@ -3,4 +3,6 @@
 
 * @heaths
 
+dir/ file
 docs/** @writers
+!negated
