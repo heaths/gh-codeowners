@@ -5,6 +5,31 @@
 
 Lint your CODEOWNERS file.
 
+## Install
+
+Make sure you have version 2.0 or [newer] of the [GitHub CLI] installed.
+
+```bash
+gh extension install heaths/gh-codeowners
+```
+
+### Upgrade
+
+The `gh extension list` command shows if updates are available for extensions. To upgrade, you can use the `gh extension upgrade` command:
+
+```bash
+gh extension upgrade heaths/gh-codeowners
+
+# Or upgrade all extensions:
+gh extension upgrade --all
+```
+
+When used in Continuous Integration, starting with `gh` version [2.25.0](https://github.com/cli/cli/releases/tag/v2.25.0), you can install or upgrade the extension with a single command:
+
+```bash
+gh extension install --force heaths/gh-codeowners
+```
+
 ## Usage
 
 Render a list of errors based on the current branch's CODEOWNERS errors reported by GitHub:
@@ -41,6 +66,10 @@ color:
   comment: "#6A9955"
   error:   "#F44747"
 ```
+
+[GitHub CLI]: https://github.com/cli/cli
+[newer]: https://github.com/cli/cli/releases/latest
+
 
 ## License
 
