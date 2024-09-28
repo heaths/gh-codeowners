@@ -62,6 +62,10 @@ func TestRender(t *testing.T) {
 				docs/** @writers %[1]s[0;38;2;255;0;0m@unknown%[1]s[0m
 			`, "\033"),
 		},
+		{
+			name: "no errors",
+			want: source,
+		},
 	}
 
 	for _, tt := range tests {
