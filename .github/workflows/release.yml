@@ -35,6 +35,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Publish
-      uses: cli/gh-extension-precompile@v1
+      uses: cli/gh-extension-precompile@v2
       with:
         go_version: ${{ env.GOVERSION }}
