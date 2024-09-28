@@ -87,6 +87,7 @@ func main() {
 
 	// Subcommands
 	rootCmd.AddCommand(cmd.LintCommand(opts))
+	rootCmd.AddCommand(cmd.PrCommand(opts))
 	rootCmd.AddCommand(cmd.ViewCommand(opts))
 
 	if err := rootCmd.Execute(); err != nil {

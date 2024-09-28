@@ -2,6 +2,9 @@ package codeowners
 
 import (
 	_fs "io/fs"
+	"strings"
+
+	"github.com/hairyhenderson/go-codeowners"
 )
 
 func Find(fs _fs.FS) string {
@@ -20,16 +23,48 @@ func Find(fs _fs.FS) string {
 }
 
 func fileExists(fs _fs.FS, path string) bool {
-	if fs, ok := fs.(_fs.StatFS); ok {
-		if stat, err := fs.Stat(path); err == nil && !stat.IsDir() {
-			return true
-		}
-	}
-	if f, err := fs.Open(path); err == nil {
+	var err error
+	var stat _fs.FileInfo
+
+	if statFS, ok := fs.(_fs.StatFS); ok {
+		stat, err = statFS.Stat(path)
+	} else if f, e := fs.Open(path); e != nil {
+		return false
+	} else {
 		defer f.Close()
-		if stat, err := f.Stat(); err == nil && !stat.IsDir() {
-			return true
+		stat, err = f.Stat()
+	}
+
+	return err == nil && !stat.IsDir()
+}
+
+type Codeowners struct {
+	source *codeowners.Codeowners
+}
+
+func (c Codeowners) Owners(path string) []string {
+	owners := c.source.Owners(path)
+	// Work around https://github.com/hairyhenderson/go-codeowners/issues/43
+	for i := range owners {
+		if strings.HasPrefix(owners[i], "#") {
+			owners = owners[:i]
+			break
 		}
 	}
-	return false
+	return owners
+}
+
+func Open(fs _fs.FS, path string) (*Codeowners, error) {
+	f, err := fs.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if c, err := codeowners.FromReader(f, ""); err != nil {
+		return nil, err
+	} else {
+		return &Codeowners{
+			source: c,
+		}, nil
+	}
 }

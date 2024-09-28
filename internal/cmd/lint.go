@@ -1,15 +1,11 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/cli/go-gh"
 	"github.com/cli/go-gh/pkg/api"
-	"github.com/cli/go-gh/pkg/jsonpretty"
 	"github.com/heaths/gh-codeowners/internal/codeowners"
 	"github.com/heaths/gh-codeowners/internal/git"
 	"github.com/spf13/cobra"
@@ -80,18 +76,7 @@ func lint(opts *lintOptions) (err error) {
 	}
 
 	if opts.json {
-		buf, err := json.Marshal(errors)
-		if err != nil {
-			return err
-		}
-
-		r := bytes.NewBuffer(buf)
-		if opts.Console.IsStdoutTTY() {
-			return jsonpretty.Format(opts.Console.Stdout(), r, indent, opts.IsColorEnabled())
-		}
-
-		_, err = io.Copy(opts.Console.Stdout(), r)
-		return err
+		return printJson(opts.GlobalOptions, errors)
 	}
 
 	if opts.unknownOwners {
