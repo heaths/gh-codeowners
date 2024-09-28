@@ -22,6 +22,11 @@ type RenderOptions struct {
 func Render(fs _fs.FS, errors Errors, opts RenderOptions) error {
 	path := errors.Path()
 	if path == "" {
+		if fs, ok := fs.(_fs.StatFS); ok {
+			path = Find(fs)
+		}
+	}
+	if path == "" {
 		return nil
 	}
 
