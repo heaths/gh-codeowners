@@ -6,6 +6,7 @@ import (
 	"testing/fstest"
 	"time"
 
+	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,6 +68,22 @@ func TestFind(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestOpen(t *testing.T) {
+	var source = heredoc.Doc(`
+		# License
+
+		* @heaths # Default owner(s)
+		docs/** @writers
+	`)
+	fs := fstest.MapFS{
+		".github/CODEOWNERS": {Data: []byte(source)},
+	}
+	c, err := Open(fs, ".github/CODEOWNERS")
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"@heaths"}, c.Owners("main.go"))
+	assert.Equal(t, []string{"@writers"}, c.Owners("docs/README.md"))
 }
 
 type baseFS map[string]baseFileInfo

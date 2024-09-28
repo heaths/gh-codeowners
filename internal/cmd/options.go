@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"io/fs"
 	"log"
+	"os"
+	"strconv"
 	"strings"
 
 	"github.com/cli/go-gh"
@@ -23,6 +26,7 @@ type GlobalOptions struct {
 	// Test-only options.
 	host      string
 	authToken string
+	fs        fs.FS
 }
 
 type ColorOptions struct {
@@ -64,6 +68,18 @@ func (opts *GlobalOptions) IsColorEnabled() bool {
 	return !term.IsColorDisabled() &&
 		opts.Console != nil &&
 		opts.Console.IsStdoutTTY()
+}
+
+func (opts *GlobalOptions) RootFS() fs.FS {
+	if opts.fs == nil {
+		var root string
+		var err error
+		if root, err = os.Getwd(); err != nil {
+			root = "/"
+		}
+		opts.fs = os.DirFS(root)
+	}
+	return opts.fs
 }
 
 func StringEnumVarP(cmd *cobra.Command, p *string, name, shorthand, defaultValue string, values []string, usage string) {
@@ -108,4 +124,13 @@ func stringSliceContains(value string, values []string) bool {
 	}
 
 	return false
+}
+
+func parseNumberRef(number string) (int, error) {
+	number = strings.TrimPrefix(number, "#")
+	if i, err := strconv.ParseInt(number, 10, 32); err != nil {
+		return 0, fmt.Errorf("parse issue or pull request number: %w", err)
+	} else {
+		return int(i), nil
+	}
 }
