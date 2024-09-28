@@ -22,7 +22,7 @@ defaults:
     shell: bash
 
 env:
-  GOVERSION: "1.19"
+  GOVERSION: "1.22"
 
 jobs:
   test:
@@ -41,9 +41,9 @@ jobs:
           goos: darwin
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Set up Go ${{ env.GOVERSION }}
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GOVERSION }}
         cache: false # Set to `true` when dependencies are added.
@@ -52,10 +52,9 @@ jobs:
     - name: Lint
       if: ${{ !cancelled() && matrix.lint }}
       # cspell:ignore golangci
-      uses: golangci/golangci-lint-action@v3
+      uses: golangci/golangci-lint-action@v6
       with:
         only-new-issues: true
-        skip-pkg-cache: true
 
   check:
     runs-on: ubuntu-latest
