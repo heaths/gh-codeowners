@@ -32,6 +32,8 @@ gh extension install --force heaths/gh-codeowners
 
 ## Usage
 
+### Lint
+
 Render a list of errors based on the current branch's CODEOWNERS errors reported by GitHub:
 
 ```bash
@@ -44,6 +46,23 @@ You can also get a sorted list of unknown owners or just return the raw JSON:
 gh codeowners lint --json
 gh codeowners lint --unknown-owners
 ```
+
+### PR
+
+To see the codeowners for each file in a pull request:
+
+```bash
+gh codeowners pr 123
+```
+
+The output is rendered as colorful, formatted JSON in terminals but will be compact JSON when piped to another program like `jq`:
+
+```bash
+# Check for added files.
+gh codeowners pr 123 | jq '.[] | select(.changeType=="ADDED")'
+```
+
+### View
 
 To render your CODEOWNERS file with errors reported by GitHub:
 
