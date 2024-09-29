@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/cli/go-gh/pkg/auth"
 	"github.com/cli/go-gh/pkg/repository"
 	"github.com/cli/go-gh/pkg/term"
+	"github.com/heaths/gh-codeowners/internal/git"
 	"github.com/heaths/go-console"
 	"github.com/spf13/cobra"
 )
@@ -24,9 +24,10 @@ type GlobalOptions struct {
 	Verbose bool
 
 	// Test-only options.
-	host      string
-	authToken string
-	fs        fs.FS
+	host          string
+	authToken     string
+	colorDisabled bool
+	fs            fs.FS
 }
 
 type ColorOptions struct {
@@ -65,21 +66,21 @@ func (opts *GlobalOptions) IsAuthenticated() error {
 }
 
 func (opts *GlobalOptions) IsColorEnabled() bool {
-	return !term.IsColorDisabled() &&
+	return !opts.colorDisabled &&
+		!term.IsColorDisabled() &&
 		opts.Console != nil &&
 		opts.Console.IsStdoutTTY()
 }
 
-func (opts *GlobalOptions) RootFS() fs.FS {
+func (opts *GlobalOptions) RootFS() (fs.FS, error) {
 	if opts.fs == nil {
-		var root string
 		var err error
-		if root, err = os.Getwd(); err != nil {
-			root = "/"
+		opts.fs, err = git.RootFS()
+		if err != nil {
+			return nil, err
 		}
-		opts.fs = os.DirFS(root)
 	}
-	return opts.fs
+	return opts.fs, nil
 }
 
 func StringEnumVarP(cmd *cobra.Command, p *string, name, shorthand, defaultValue string, values []string, usage string) {

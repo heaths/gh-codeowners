@@ -59,7 +59,11 @@ func pr(opts *prOptions) (err error) {
 		return
 	}
 
-	fs := opts.RootFS()
+	fs, err := opts.RootFS()
+	if err != nil {
+		return err
+	}
+
 	path := codeowners.Find(fs)
 	if path == "" {
 		return fmt.Errorf("CODEOWNERS not found")

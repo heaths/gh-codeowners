@@ -64,7 +64,7 @@ func view(opts *viewOptions) (err error) {
 		Color:   opts.Color,
 	}
 
-	root, err := git.RootFS()
+	root, err := opts.RootFS()
 	if err != nil {
 		return
 	}
