@@ -2,7 +2,6 @@ package codeowners
 
 import (
 	_fs "io/fs"
-	"strings"
 
 	"github.com/hairyhenderson/go-codeowners"
 )
@@ -43,15 +42,7 @@ type Codeowners struct {
 }
 
 func (c Codeowners) Owners(path string) []string {
-	owners := c.source.Owners(path)
-	// Work around https://github.com/hairyhenderson/go-codeowners/issues/43
-	for i := range owners {
-		if strings.HasPrefix(owners[i], "#") {
-			owners = owners[:i]
-			break
-		}
-	}
-	return owners
+	return c.source.Owners(path)
 }
 
 func Open(fs _fs.FS, path string) (*Codeowners, error) {

@@ -3,7 +3,7 @@ module github.com/heaths/gh-codeowners
 go 1.22.0
 
 require (
-	github.com/hairyhenderson/go-codeowners v0.6.0
+	github.com/hairyhenderson/go-codeowners v0.6.1
 	github.com/spf13/viper v1.15.0
 	github.com/stretchr/testify v1.9.0
 	gopkg.in/h2non/gock.v1 v1.1.2
